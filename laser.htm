@@ -14,13 +14,13 @@
 </head>
 <body class="bg-gray-900 text-white flex justify-center items-center">
     <div class="w-[calc(100%-10px)] sm:w-4/5 xl:w-2/3 grid grid-cols-3 gap-4">
-        <div class="col-span-full flex justify-center text-center text-[40px] h-[50px] order-first">
+        <div class="col-span-full flex justify-center text-center text-[40px] h-[50px]">
             <span class="select-none font-extrabold transition text-white hover:text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-blue-400">
-                LaSEr v0.1
+                LaSEr v0.WIP
             </span>
         </div>
-        <div class="max-md:col-span-full order-2">
-            <div class="flex flex-col rounded border bg-gray-800 p-4 items-center">
+        <div class="max-md:col-span-full flex flex-col">
+            <div class="flex flex-col rounded border bg-gray-800 p-[14px] items-center">
                 <div id="cube" class="flex flex-col aspect-[10/17] h-[300px]">
                     <div class="grid grid-cols-5 !h-1/2 back bottom">
                         <div class="col-span-2"></div>
@@ -106,19 +106,16 @@
                         <div class="col-span-2"></div>
                     </div>
                 </div>
-                <div id="moves" class="flex overflow-x-auto max-w-full gap-1 select-none">
-
+            </div>
+            <div class="flex flex-col col-span-full">
+                <span class="text-16 font-semibold">Solutions:</span>
+                <div id="solutions" class="flex flex-col max-w-[600px] max-sm:text-12">
+    
                 </div>
             </div>
         </div>
-        <div class="flex flex-col p-4 select-none col-span-2 max-md:col-span-full order-3 max-md:order-5">
-            <div id="options" class="flex flex-col">
-            </div>
-        </div>
-        <div class="flex flex-col col-span-full order-4">
-            <span class="text-16 font-semibold">Solutions:</span>
-            <div id="solutions" class="flex flex-col max-w-[600px]">
-
+        <div class="flex flex-col px-4 select-none col-span-2 max-md:col-span-full overflow-auto">
+            <div id="options" class="flex gap-2">
             </div>
         </div>
     </div>

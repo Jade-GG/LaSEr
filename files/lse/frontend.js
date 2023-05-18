@@ -1,61 +1,44 @@
-import cube from './cube.js'
 import globals from './globals.js'
+import cube from './cube.js'
 import solver from './solver.js'
+import scrambler from './scrambler.js'
 
 export default {
     lseState: cube.baseState(),
     movesDone: [],
     maxSolutions: 5,
 
-    controls: {
-        '8': 'U\'',
-        '9': 'U',
-        '0': 'U2',
-        '3': 'M\'',
-        '2': 'M',
-        '1': 'M2',
-    },
-
-    colors: {
-        U: 'white',
-        F: 'green',
-        D: 'yellow',
-        B: 'blue',
-        L: 'orange',
-        R: 'red',
-    },
-
-    settings: {
-        back: {
-            name: 'Show backside',
-            value: false,
-        },
-        bottom: {
-            name: 'Show bottom',
-            value: false,
-        },
-        highlight_ulur: {
-            name: 'Highlight UL/UR edges',
-            value: false,
-        }
-    },
-
     initialize: function() {
+        globals.loadSettings()
+
         document.addEventListener('DOMContentLoaded', () => {
             this.populateOptions()
             this.render()
         })
         
         document.addEventListener('keypress', (e) => {
-            let move = this.controls[e.key]
+            if(e.key == 'j') {
+                this.scramble()
+                return
+            }
+            
+            let move = Object.entries(globals.getSetting('cube.controls')).find(([move, button]) => button == e.key)
             if(move) {
-                this.control(move)
+                this.control(move[0].replace('p', '\''))
             }
         })
     },
 
+    scramble: async function() {
+        await scrambler.generateEOLRScramble()
+        solver.solutions = scrambler.solutions
+        this.lseState = cube.doMoves(cube.baseState(), scrambler.scramble)
+        this.movesDone = []
+        this.render()
+    },
+
     getColors: function() {
-        return this.colors
+        return globals.getSetting('cube.colors')
     },
     
     cubeStyle: function(cube) {
@@ -97,10 +80,10 @@ export default {
     
     styleSettings: function() {
         let style = ''
-        if(!this.settings.back.value) {
+        if(!globals.getSetting('cube.back')) {
             style += '.back { opacity: 0 }'
         }
-        if(!this.settings.bottom.value) {
+        if(!globals.getSetting('cube.bottom')) {
             style += '.bottom { opacity: 0 }'
         }
         return style
@@ -142,84 +125,169 @@ export default {
             null, cc.U, cc.U, cc.U, cc.U, cc.D, cc.D, null,
             null, cc.L, cc.R, cc.B, cc.F, cc.F, cc.B, null,
         ][piece]
-        if (this.settings.highlight_ulur.value && (piece & 0x7) < 3) {
-            let hlcol = 'white'
+        if (globals.getSetting('cube.highlight_ulur') && (piece & 0x7) < 3) {
+            let hlcol = cc.U
             if(~piece & 0x8) {
-                hlcol = (piece & 0x7) == 1 ? 'red' : 'orange'
+                hlcol = (piece & 0x7) == 1 ? cc.R : cc.L
             }
             return `.${pieceName} { box-shadow:0px 0px 10px ${hlcol}; border:2px solid ${hlcol}; z-index:10; background: ${color} }`
         }
         return `.${pieceName} { background: ${color} }`
     },
 
-    update: function(id) {
-        let cb = document.getElementById(id)
-        this.settings[id].value = cb.checked
-        localStorage.settings = JSON.stringify(this.settings)
+    idFrom: function(str) {
+        let seed = 0
+        let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed
+        for(let i = 0, ch; i < str.length; i++) {
+            ch = str.charCodeAt(i)
+            h1 = Math.imul(h1 ^ ch, 2654435761)
+            h2 = Math.imul(h2 ^ ch, 1597334677)
+        }
+        h1  = Math.imul(h1 ^ (h1 >>> 16), 2246822507)
+        h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909)
+        h2  = Math.imul(h2 ^ (h2 >>> 16), 2246822507)
+        h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909)
+        
+        return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16)
+    },
+
+    updateInp: function(config) {
+        let input = document.getElementById(this.idFrom(config))
+        let val = ''
+        if(input.type == 'checkbox') {
+            val = input.checked
+        } else if(input.type == 'number') {
+            val = parseInt(input.value)
+        } else {
+            val = input.value
+        }
+        globals.setSetting(config, val)
+        globals.saveSettings()
         this.render()
     },
 
     populateOptions: function() {
         let options = document.querySelector('#options')
-        Object.entries(this.settings).forEach(([id, entry]) => {
-            options.innerHTML += `<label for="${id}" onclick="window.frontend.update('${id}')"><input type="checkbox" id="${id}" ${entry.value ? 'checked' : ''}> ${entry.name}</label>`
+        Object.entries(globals.settings).forEach(([section, settings]) => {
+            let wrapper = document.createElement('label')
+            wrapper.className = 'h-fit'
+            wrapper.setAttribute('for', this.idFrom(section))
+
+            // Add invisible checkbox to click
+            let cb = document.createElement('input')
+            cb.type = 'checkbox'
+            cb.id = this.idFrom(section)
+            cb.className = 'hidden peer'
+            wrapper.appendChild(cb)
+
+            // Create ul
+            let wnd = document.createElement('ul')
+            wnd.className = 'peer-checked:max-h-max max-h-8 overflow-hidden bg-gray-800/50 px-2 py-[0.2rem] rounded w-fit hover:bg-gray-800 peer-checked:bg-gray-800 transition'
+
+            // Give it a title
+            let title = document.createElement('div')
+            title.className = 'mb-2 font-bold'
+            title.innerText = settings.name
+            wnd.appendChild(title)
+
+            // Add individual settings
+            Object.entries(settings).forEach(([id, data]) => {
+                if(id == 'name') {
+                    return
+                }
+                let opt = document.createElement('li')
+                opt.innerHTML = this.settingFrom(`${section}.${id}`, data)
+                wnd.appendChild(opt)
+            })
+            
+            // Add section to options
+            wrapper.appendChild(wnd)
+            options.appendChild(wrapper)
         })
     },
 
-    loadSettings: function() {
-        if(localStorage.settings) {
-            let localSettings = JSON.parse(localStorage.settings)
-            Object.entries(localSettings).forEach(([id, entry]) => {
-                if(this.settings[id]) {
-                    this.settings[id].value = entry.value
+    settingFrom: function(config, data) {
+        if(data.options) {
+            return this.selectSetting(config, data)
+        }
+
+        let id = this.idFrom(config)
+        switch(typeof data.value) {
+            case 'boolean': return `<label for="${id}" onclick="window.frontend.updateInp('${config}')" class="w-full"><input type="checkbox" id="${id}" ${data.value ? 'checked' : ''}> ${data.name}</label>`
+
+            case 'object': return this.objectSetting(config, data.name, data.value)
+
+            case 'string':
+            case 'number':
+                let itype = (typeof data.value == 'string') ? 'type="text"' : 'type="number"'
+                let classes = ''
+                if(config.startsWith('cube.colors')) {
+                    itype = 'type="color"'
+                    classes = '!p-0 overflow-hidden h-[24px] w-[36px] !bg-transparent'
                 }
+                if(config.startsWith('cube.controls')) {
+                    itype += ' maxlength="1"'
+                }
+                if(config.startsWith('eolr.eostates')) {
+                    itype += ' min="0"'
+                }
+                return `<div class="flex">${data.name}: <input id="${id}" ${itype} oninput="window.frontend.updateInp('${config}')" class="bg-gray-600 rounded px-1 ml-1 mb-1 ${classes}" value="${data.value}"/></div>`
+
+            default: return `<span class="text-11 text-gray-500">${typeof data.value} not supported yet</span>`
+        }
+    },
+
+    objectSetting: function(config, name, data) {
+        let wnd = document.createElement('ul')
+        wnd.className = 'px-2 mt-2 relative before:bg-white/10 before:w-1 before:absolute before:left-0 before:inset-y-0'
+        let title = document.createElement('div')
+        title.className = 'mb-2 font-bold'
+        title.innerText = name
+        wnd.appendChild(title)
+
+        Object.entries(data).forEach(([id, val]) => {
+            let opt = document.createElement('li')
+            opt.innerHTML = this.settingFrom(`${config}.${id}`, {
+                name: id,
+                value: val
             })
-        }
+            wnd.appendChild(opt)
+        })
 
-        globals.currSolvedFunc = solver.FullSolved
+        return wnd.outerHTML
     },
 
-    fillMoves: function(id, moves) {
-        document.getElementById(id).innerHTML = moves.reduce((str, move, i) => str + `<div class="move" onclick="window.frontend.clickMove('${id}',${i})">${move}</div>`, '')
-    },
+    selectSetting: function(config, data) {
+        let wrapper = document.createElement('div')
+        wrapper.className = 'flex items-center gap-2'
 
-    clickMove: function(id, index) {
-        if (id == 'moves') {
-            this.movesDone.splice(index, 1)
-            this.movesDone = cube.reduceMoves(this.movesDone)
-            this.fillMoves('moves', this.movesDone)
-            this.lseState = cube.doMoves(cube.baseState(), this.movesDone)
+        let title = document.createElement('div')
+        title.className = 'whitespace-nowrap'
+        title.innerText = data.name
+        wrapper.appendChild(title)
 
-            this.render()
-        }
-    },
+        let sel = document.createElement('select')
+        sel.value = data.value
+        sel.className = 'rounded bg-gray-600 px-2 py-1'
 
-    printSolve: async function(state) {
-        let solutions = await solver.solve(state);
-        let elm = document.getElementById('solutions')
-        elm.innerHTML = ''
-        for(let i = 0; i < solutions.length; i++) {
-            let solution = solutions[i]
-            if(solution.length == 0) {
-                break
-            }
-            if(i >= this.maxSolutions) {
-                elm.innerHTML += `<span class="text-gray-500">${solutions.length - this.maxSolutions} more solutions not shown</span>`
-                break
-            }
-            elm.innerHTML += `<div class="flex w-full justify-between"><div>${solution.join(' ')}</div><div>(${solution.length} moves)</div></div>`
-        }
+        data.options.forEach((opt, i) => {
+            let elm = document.createElement('option')
+            elm.innerText = opt
+            elm.value = i
+            sel.appendChild(elm)
+        })
+
+        wrapper.appendChild(sel)
+        return wrapper.outerHTML
     },
 
     render: function() {
         this.cubeStyle(this.lseState)
-        this.printSolve(this.lseState)
     },
 
     control: function(move) {
         this.movesDone.push(move)
         this.movesDone = cube.reduceMoves(this.movesDone)
-        this.fillMoves('moves', this.movesDone)
         this.lseState = cube.doMove(this.lseState, move)
         this.render()
     }

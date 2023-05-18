@@ -7,8 +7,8 @@ export default {
     oldStates: {},
     shortest: 20,
 
-    FullSolved: function(state) {
-        return state == 0x12345600
+    fullSolved: function(state) {
+        return state == 0x12345600 || state == 0x12347700
     },
 
     loopSolve: async function(states) {
