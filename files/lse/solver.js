@@ -60,16 +60,16 @@ export default {
         }
 
         let u = state & 3
-        if(u == 0 && (state & 0xff000000 == 0x12000000)) {
+        if(u == 0 && ((state & 0xff000000) == 0x12000000)) {
             return true
         }
-        if(u == 1 && (state & 0x00ff0000 == 0x00120000)) {
+        if(u == 1 && ((state & 0x00ff0000) == 0x00120000)) {
             return true
         }
-        if(u == 2 && (state & 0xff000000 == 0x21000000)) {
+        if(u == 2 && ((state & 0xff000000) == 0x21000000)) {
             return true
         }
-        if(u == 3 && (state & 0x00ff0000 == 0x00210000)) {
+        if(u == 3 && ((state & 0x00ff0000) == 0x00210000)) {
             return true
         }
         
