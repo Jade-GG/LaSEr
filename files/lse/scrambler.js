@@ -34,6 +34,23 @@ export default {
         }
     },
 
+    getEOFromNameWR: function(name) {
+        let eo = this.getEOFromName(name)
+        if(globals.getSetting('eolr.random_auf')) {
+            let u = this.getRandomAUF()
+            if(u > 0) {
+                eo = cube.doMove(eo, ['', 'U', 'U\'', 'U2'][u])
+            }
+        }
+        // Lazy
+        if(this.getRandomAUF() % 2 == 1) {
+            eo = (eo & 0xFF0000FF)
+                | ((eo & 0x00F0F000) >>> 4)
+                | ((eo & 0x000F0F00) << 4)
+        }
+        return eo
+    },
+
     getRandomEO: function() {
         let eos = this.getEOSettings()
         let total = Object.values(eos).reduce((s, v) => s + v, 0)
@@ -42,7 +59,7 @@ export default {
         }
 
         // Please forgive me.
-        return this.getEOFromName(Object.entries(eos).reduce((s, [eo, amt]) => [...s, ...Array.from({length:amt}, () => eo)], [])[Math.floor(Math.random() * total)])
+        return this.getEOFromNameWR(Object.entries(eos).reduce((s, [eo, amt]) => [...s, ...Array.from({length:amt}, () => eo)], [])[Math.floor(Math.random() * total)])
     },
 
     getRandomEdges: function() {
