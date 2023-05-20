@@ -66,6 +66,10 @@ export default {
         return this.shuffle([1,2,3,4,5,5]).reduce((s, v) => (s << 4) + v) << 8
     },
 
+    getRandom4C: function() {
+        return (this.shuffle([3,4,5,5]).reduce((s, v) => (s << 4) + v) << 8) | 0x12000000
+    },
+
     getRandomAUF: function() {
         return Math.floor(Math.random() * 4)
     },
@@ -98,14 +102,26 @@ export default {
     generateEOLRScramble: async function() {
         this.scramble = []
 
+        let state, solutions
         while(globals.currSolvedFunc(cube.doMoves(cube.simpleBaseState(), this.scramble))) {
-            let state = this.getRandomEO() ^ this.getRandomEdges()
-            if(globals.getSetting('eolr.random_auf')) {
-                state ^= this.getRandomAUF()
+            if(globals.getSetting('laser.practice') == 4) {
+                state = this.getRandom4C()
+                let u = this.getRandomAUF()
+                if(!globals.getSetting('eolr.random_auf')) {
+                    u = (u % 2) * 2
+                }
+                if(u > 0) {
+                    state = cube.doMove(state, ['', 'U', 'U\'', 'U2'][u])
+                }
+            } else {
+                state = this.getRandomEO() ^ this.getRandomEdges()
+                if(globals.getSetting('eolr.random_auf')) {
+                    state ^= this.getRandomAUF()
+                }
             }
             state ^= this.getRandomMC(state)
 
-            let solutions = await solver.solve(state)
+            solutions = await solver.solve(state)
             this.scramble = cube.reverseMoves(solutions[0])
         }
 
