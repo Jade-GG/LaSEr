@@ -1,4 +1,5 @@
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.tailwindcss.com"></script>
 <script type="module" src="/files/lse.js"></script>
 <style>
@@ -21,8 +22,8 @@
     <div class="lg:w-4/5 lg:ml-[20%] flex max-lg:flex-col gap-4">
         <div class="lg:min-w-[calc(max(450px,33%))] flex flex-col">
             <div class="flex gap-1 my-1 controls">
-                <button class="rounded w-full h-[64px] bg-gray-800 text-center border" onclick="window.frontend.reset()">Reset</button>
-                <button class="rounded w-full h-[64px] bg-gray-800 text-center border" onclick="window.frontend.scramble()">Scramble</button>
+                <button class="rounded w-full h-[64px] bg-gray-800 text-center border" ontouchstart="event.preventDefault();event.target.dispatchEvent(new Event('click'))" onclick="window.frontend.reset()">Reset</button>
+                <button class="rounded w-full h-[64px] bg-gray-800 text-center border" ontouchstart="event.preventDefault();event.target.dispatchEvent(new Event('click'))" onclick="window.frontend.scramble()">Scramble</button>
             </div>
             <div class="flex flex-col rounded border bg-gray-800 p-[14px] items-center">
                 <div id="cube" class="flex flex-col aspect-[10/17] h-[300px]">
@@ -113,10 +114,10 @@
                 <div id="movesdone" class="text-xs flex justify-between w-full"></div>
             </div>
             <div class="flex gap-1 mt-1 controls">
-                <button class="rounded w-full h-[64px] bg-gray-800 text-center border" onclick="window.frontend.control('M')">M</button>
-                <button class="rounded w-full h-[64px] bg-gray-800 text-center border" onclick="window.frontend.control('M\'')">M'</button>
-                <button class="rounded w-full h-[64px] bg-gray-800 text-center border" onclick="window.frontend.control('U')">U</button>
-                <button class="rounded w-full h-[64px] bg-gray-800 text-center border" onclick="window.frontend.control('U\'')">U'</button>
+                <button class="rounded w-full h-[64px] bg-gray-800 text-center border" ontouchstart="event.preventDefault();event.target.dispatchEvent(new Event('click'))" onclick="window.frontend.control('M')">M</button>
+                <button class="rounded w-full h-[64px] bg-gray-800 text-center border" ontouchstart="event.preventDefault();event.target.dispatchEvent(new Event('click'))" onclick="window.frontend.control('M\'')">M'</button>
+                <button class="rounded w-full h-[64px] bg-gray-800 text-center border" ontouchstart="event.preventDefault();event.target.dispatchEvent(new Event('click'))" onclick="window.frontend.control('U')">U</button>
+                <button class="rounded w-full h-[64px] bg-gray-800 text-center border" ontouchstart="event.preventDefault();event.target.dispatchEvent(new Event('click'))" onclick="window.frontend.control('U\'')">U'</button>
             </div>
             <div class="flex flex-col solutions">
                 <span class="text-16 font-semibold">Solutions:</span>
@@ -128,7 +129,7 @@
             </div>
         </div>
         <div class="flex flex-col px-4 select-none overflow-auto min-h-[100px]">
-            <div id="options" class="flex gap-2">
+            <div id="options" class="flex gap-2 max-lg:flex-col max-lg:max-w-full">
             </div>
         </div>
     </div>
