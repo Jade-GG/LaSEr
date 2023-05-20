@@ -1,3 +1,5 @@
+import globals from "./globals.js"
+
 export default {
     baseState: function() {
         return 0x12345600
@@ -110,6 +112,16 @@ export default {
             }
         }
         return moves
+    },
+
+    simplifyMoves: function(moves) {
+        if(globals.getSetting('laser.qstm')) {
+            return moves
+        }
+
+        let mstr = moves.join(' ') + ' '
+        mstr = mstr.replaceAll('U U ', 'U2 ').replaceAll('U\' U\' ', 'U2 ').replaceAll('M M ', 'M2 ').replaceAll('M\' M\' ', 'M2 ')
+        return mstr.split(' ').filter(s => s)
     },
 
     reverseMoves: function(moves) {

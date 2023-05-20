@@ -2,29 +2,58 @@ import globals from './globals.js'
 import cube from './cube.js'
 import solver from './solver.js'
 import scrambler from './scrambler.js'
+import dict from './dict.js'
 
 export default {
     lseState: cube.baseState(),
     movesDone: [],
-    maxSolutions: 5,
+    solved: false,
+    solves: [],
+
+    stats: function() {
+        let count = this.solves.length;
+        let avg = Math.round(this.solves.reduce((s, v) => s + v.solution.length, 0) / count * 100) / 100;
+        let scram = Math.round(this.solves.reduce((s, v) => s + v.topsolve.length, 0) / count * 100) / 100;
+        let efficiency = Math.round(this.solves.reduce((s, v) => s + v.topsolve.length / v.solution.length, 0) / count * 1000) / 10;
+
+        if(count == 0) {
+            return [{ name: 'Solved', value: count, denomination: ' solves' }]
+        }
+        return [
+            { name: 'Solved', value: count, denomination: ' solves' },
+            { name: 'Average solve', value: avg, denomination: ' moves' },
+            { name: 'Average optimum', value: scram, denomination: ' moves' },
+            { name: 'Average efficiency', value: efficiency, denomination: '%' },
+        ]
+    },
 
     initialize: function() {
         globals.loadSettings()
 
         document.addEventListener('DOMContentLoaded', () => {
             this.populateOptions()
-            this.render()
+            this.renderCube()
+            this.renderMovesDone()
+            this.renderStats()
         })
         
         document.addEventListener('keypress', (e) => {
-            if(e.key == 'j') {
-                this.scramble()
-                return
-            }
-            
-            let move = Object.entries(globals.getSetting('cube.controls')).find(([move, button]) => button == e.key)
-            if(move) {
-                this.control(move[0].replace('p', '\''))
+            let control = Object.entries(globals.getSetting('cube.controls')).find(([move, button]) => button == e.key)
+            if(control) {
+                if(['M', 'Mp', 'M2', 'U', 'Up', 'U2'].includes(control[0])) {
+                    this.control(control[0].replace('p', '\''))
+                } else {
+                    switch(control[0]) {
+                        case 'Reset':
+                            this.reset()
+                            break
+                        case 'New':
+                            this.scramble()
+                            break
+                        default:
+                            break
+                    }
+                }
             }
         })
     },
@@ -32,9 +61,16 @@ export default {
     scramble: async function() {
         await scrambler.generateEOLRScramble()
         solver.solutions = scrambler.solutions
+        this.solved = false
+        this.reset()
+    },
+
+    reset: async function() {
         this.lseState = cube.doMoves(cube.baseState(), scrambler.scramble)
         this.movesDone = []
-        this.render()
+        this.renderCube()
+        this.renderSolutions(scrambler.solutions)
+        this.renderMovesDone()
     },
 
     getColors: function() {
@@ -85,6 +121,9 @@ export default {
         }
         if(!globals.getSetting('cube.bottom')) {
             style += '.bottom { opacity: 0 }'
+        }
+        if(!globals.getSetting('laser.alwaysshow') && !this.solved) {
+            style += '.solutions { display: none !important }'
         }
         return style
     },
@@ -151,6 +190,18 @@ export default {
         return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16)
     },
 
+    clear: function() {
+        this.solves = []
+        this.movesDone = []
+        scrambler.solutions = []
+        scrambler.scramble = []
+        this.lseState = cube.baseState()
+        this.renderStats()
+        this.renderMovesDone()
+        this.renderSolutions([])
+        this.renderCube()
+    },
+
     updateInp: function(config) {
         let input = document.getElementById(this.idFrom(config))
         let val = ''
@@ -161,9 +212,32 @@ export default {
         } else {
             val = input.value
         }
+
+        if(val != globals.getSetting(config)) {
+            if(config == 'laser.qstm') {
+                dict.dict = null
+                this.clear()
+                globals.currMoveset = globals.getMoveSet(val)
+            }
+
+            if(config == 'laser.practice') {
+                this.clear()
+                globals.setSolvedFunc(val)
+            }
+        }
+
         globals.setSetting(config, val)
         globals.saveSettings()
-        this.render()
+        this.renderCube()
+        this.renderSolutions(scrambler.solutions)
+    },
+
+    setControl: function(config, event) {
+        let input = document.getElementById(this.idFrom(config))
+        input.value = event.key
+        globals.setSetting(config, event.key)
+        globals.saveSettings()
+        event.preventDefault()
     },
 
     populateOptions: function() {
@@ -182,7 +256,7 @@ export default {
 
             // Create ul
             let wnd = document.createElement('ul')
-            wnd.className = 'peer-checked:max-h-max max-h-8 overflow-hidden bg-gray-800/50 px-2 py-[0.2rem] rounded w-fit hover:bg-gray-800 peer-checked:bg-gray-800 transition'
+            wnd.className = 'peer-checked:max-h-max max-h-8 overflow-hidden bg-gray-800/50 px-2 py-[0.2rem] rounded w-fit min-w-[200px] hover:bg-gray-800 peer-checked:bg-gray-800 transition'
 
             // Give it a title
             let title = document.createElement('div')
@@ -220,18 +294,19 @@ export default {
             case 'string':
             case 'number':
                 let itype = (typeof data.value == 'string') ? 'type="text"' : 'type="number"'
+                let event = `oninput="window.frontend.updateInp('${config}')"`
                 let classes = ''
                 if(config.startsWith('cube.colors')) {
                     itype = 'type="color"'
                     classes = '!p-0 overflow-hidden h-[24px] w-[36px] !bg-transparent'
                 }
                 if(config.startsWith('cube.controls')) {
-                    itype += ' maxlength="1"'
+                    event = `onKeyDown="window.frontend.setControl('${config}', event)"`
                 }
                 if(config.startsWith('eolr.eostates')) {
                     itype += ' min="0"'
                 }
-                return `<div class="flex">${data.name}: <input id="${id}" ${itype} oninput="window.frontend.updateInp('${config}')" class="bg-gray-600 rounded px-1 ml-1 mb-1 ${classes}" value="${data.value}"/></div>`
+                return `<div class="flex">${data.name}: <input id="${id}" ${itype} ${event} class="bg-gray-600 w-[80px] rounded px-1 ml-1 mb-1 ${classes}" value="${data.value}"/></div>`
 
             default: return `<span class="text-11 text-gray-500">${typeof data.value} not supported yet</span>`
         }
@@ -267,6 +342,8 @@ export default {
         wrapper.appendChild(title)
 
         let sel = document.createElement('select')
+        sel.setAttribute('onchange', `window.frontend.updateInp('${config}')`)
+        sel.id = this.idFrom(config)
         sel.value = data.value
         sel.className = 'rounded bg-gray-600 px-2 py-1'
 
@@ -274,6 +351,9 @@ export default {
             let elm = document.createElement('option')
             elm.innerText = opt
             elm.value = i
+            if(i == data.value) {
+                elm.setAttribute('selected', 'selected')
+            }
             sel.appendChild(elm)
         })
 
@@ -281,14 +361,55 @@ export default {
         return wrapper.outerHTML
     },
 
-    render: function() {
+    renderSolutions: function(solutions) {
+        let elm = document.getElementById('solutions')
+        elm.innerHTML = ''
+        let maxSolutions = globals.getSetting('laser.maxsolutions')
+        for(let i = 0; i < solutions.length && i < maxSolutions; i++) {
+            let solution = solutions[i];
+            elm.innerHTML += `<div class="flex justify-between"><div>${solution.join(' ')}</div><div class="ml-auto">(${solution.length} moves)</div></div>`
+        }
+        if(solutions.length > maxSolutions) {
+            let notshown = solutions.length - maxSolutions;
+            elm.innerHTML += `<div class="text-11 text-gray-500">${notshown} solution${notshown != 1 ? 's' : ''} not shown</div>`
+        }
+    },
+
+    renderMovesDone: function() {
+        let elm = document.getElementById('movesdone')
+        elm.innerHTML = `<div class="${globals.currSolvedFunc(this.lseState)?'font-bold':''}">${this.movesDone.join(' ')}</div><div class="ml-auto">(${this.movesDone.length} moves)</div>`
+    },
+
+    renderCube: function() {
         this.cubeStyle(this.lseState)
     },
 
+    renderStats: function() {
+        let stats = this.stats()
+        let elm = document.getElementById('stats')
+        elm.innerHTML = stats.reduce((s, v) => s + `<div class="flex justify-between"><div>${v.name}:</div><div>${v.value}${v.denomination}</div></div>`, '')
+    },
+
     control: function(move) {
+        if(globals.currSolvedFunc(this.lseState)) {
+            return
+        }
+
         this.movesDone.push(move)
-        this.movesDone = cube.reduceMoves(this.movesDone)
+
+        this.movesDone = cube.simplifyMoves(this.movesDone)
         this.lseState = cube.doMove(this.lseState, move)
-        this.render()
+
+        if(!this.solved && globals.currSolvedFunc(this.lseState)) {
+            this.solved = true
+            this.solves.push({
+                topsolve: cube.reverseMoves(scrambler.solutions[0]),
+                solution: this.movesDone,
+            })
+            this.renderStats()
+        }
+
+        this.renderCube()
+        this.renderMovesDone()
     }
 }

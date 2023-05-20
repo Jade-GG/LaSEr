@@ -1,5 +1,6 @@
 import globals from './globals.js'
 import cube from './cube.js'
+import solver from './solver.js'
 
 export default {
     dict: null,
@@ -47,7 +48,7 @@ export default {
                     return
                 }
                 let next = cube.doMove(state, move)
-                let stillSolved = globals.currSolvedFunc(next)
+                let stillSolved = solver.fullSolved(state)
                 if(stillSolved) {
                     if(next in this.solvedStates) {
                         return

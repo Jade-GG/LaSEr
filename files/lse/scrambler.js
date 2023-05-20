@@ -79,17 +79,24 @@ export default {
     },
 
     generateEOLRScramble: async function() {
-        // (weighted) random EO with random edge positions and random AUF
-        let state = this.getRandomEO() ^ this.getRandomEdges()
+        this.scramble = []
 
-        if(globals.getSetting('eolr.random_auf')) {
-            state ^= this.getRandomAUF()
+        while(globals.currSolvedFunc(cube.doMoves(cube.simpleBaseState(), this.scramble))) {
+            let state = this.getRandomEO() ^ this.getRandomEdges()
+            if(globals.getSetting('eolr.random_auf')) {
+                state ^= this.getRandomAUF()
+            }
+            state ^= this.getRandomMC(state)
+
+            let solutions = await solver.solve(state)
+            this.scramble = cube.reverseMoves(solutions[0])
         }
 
-        state ^= this.getRandomMC(state)
-
-        let solutions = await solver.solve(state)
-        this.scramble = cube.reverseMoves(solutions[0])
+        if(globals.solvesToEnd) {
+            this.solutions = solutions
+        } else {
+            this.solutions = await solver.solve(cube.doMoves(cube.simpleBaseState(), this.scramble), globals.currSolvedFunc)
+        }
         return this.scramble
     },
 }

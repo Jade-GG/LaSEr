@@ -2,6 +2,7 @@ import solver from "./solver.js"
 
 export default {
     currSolvedFunc: null,
+    solvesToEnd: false,
     currMoveset: ['M', 'M\'', 'M2', 'U', 'U\'', 'U2'],
 
     settings: {
@@ -12,11 +13,24 @@ export default {
                 value: 0,
                 options: [
                     'Full LSE',
+                    '4a',
                     'EOLR',
+                    'EOLR-b (4a + 4b)',
                     '4c',
                 ]
             },
-            
+            qstm: {
+                name: 'Only use quarter turns',
+                value: false,
+            },
+            alwaysshow: {
+                name: 'Always show solution',
+                value: false,
+            },
+            maxsolutions: {
+                name: 'Max solutions',
+                value: 8,
+            },
         },
         cube: {
             name: 'Virtual cube settings',
@@ -40,6 +54,8 @@ export default {
                     'Mp': '3',
                     'M': '2',
                     'M2': '1',
+                    'Reset': 'j',
+                    'New': 'Enter',
                 },
             },
             back: {
@@ -53,38 +69,34 @@ export default {
             highlight_ulur: {
                 name: 'Highlight UL/UR edges',
                 value: false,
-            },
+            }
         },
         eolr: {
             name: 'EOLR trainer settings',
-            eolrb: {
-                name: 'Solve to EOLR-b',
-                value: false,
-            },
             eomc_scramble: {
                 name: 'Allow misoriented centers in scrambles',
-                value: false,
+                value: true,
             },
             eomc_solve: {
                 name: 'Allow misoriented centers in solved states',
-                value: false,
+                value: true,
             },
             random_auf: {
                 name: 'Start with random AUF',
-                value: false,
+                value: true,
             },
             eostates: {
                 name: 'Possible EO states',
                 value: {
                     '0-0': 1,
-                    'Arrow': 1,
-                    '1F-1B': 1,
+                    'Arrow': 8,
+                    '1F-1B': 8,
                     '4-0': 1,
                     '0-2': 1,
-                    '2LR-2': 1,
-                    '2FB-0': 1,
-                    '2BL-2': 1,
-                    '2BL-0': 1,
+                    '2LR-2': 2,
+                    '2FB-0': 2,
+                    '2BL-2': 4,
+                    '2BL-0': 4,
                     '6-flip': 1,
                 },
             },
@@ -150,6 +162,41 @@ export default {
             })
         }
 
-        this.currSolvedFunc = solver.fullSolved
+        this.currMoveset = this.getMoveSet(this.getSetting('laser.qstm'))
+        this.setSolvedFunc(this.getSetting('laser.practice'))
     },
+
+    setSolvedFunc: function(id) {
+        if(id == 0 || id == 4) {
+            this.currSolvedFunc = (state) => solver.fullSolved(state)
+            this.solvesToEnd = true
+            return
+        }
+        if(id == 1) {
+            this.currSolvedFunc = (state) => solver.badEdgesSolved(state)
+            this.solvesToEnd = false
+            return
+        }
+        if(id == 2) {
+            this.currSolvedFunc = (state) => solver.EOLRSolved(state)
+            this.solvesToEnd = false
+            return
+        }
+        if(id == 3) {
+            this.currSolvedFunc = (state) => solver.EOLRBSolved(state)
+            this.solvesToEnd = false
+            return
+        }
+
+        this.currSolvedFunc = (state) => solver.fullSolved(state)
+        this.solvesToEnd = true
+    },
+
+    getMoveSet: function(qstm) {
+        if(qstm) {
+            return ['M', 'M\'', 'U', 'U\'']
+        } else {
+            return ['M', 'M\'', 'M2', 'U', 'U\'', 'U2']
+        }
+    }
 }
