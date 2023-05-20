@@ -46,8 +46,7 @@ export default {
     },
 
     getRandomEdges: function() {
-        // Use 7 as placeholder for DF and DB, we can just get a proper state from the reversed scramble :)
-        return this.shuffle([1,2,3,4,7,7]).reduce((s, v) => (s << 4) + v) << 8
+        return this.shuffle([1,2,3,4,5,5]).reduce((s, v) => (s << 4) + v) << 8
     },
 
     getRandomAUF: function() {

@@ -11,7 +11,7 @@ export default {
         }
         this.dict = {}
         this.solvedStates = {};
-        this.loopDict([[cube.baseState(), []]], 0)
+        this.loopDict([[cube.simpleBaseState(), []]], 0)
 
         return this.dict
     },

@@ -68,10 +68,12 @@ export default {
         }
     },
 
-    solve: async function(state) {
+    solve: async function(cubeState) {
         this.solutions = []
         this.oldStates = {}
         this.shortest = 20
+
+        let state = cube.simplifyState(cubeState);
 
         await dict.getDict()
         if(state in dict.dict) {

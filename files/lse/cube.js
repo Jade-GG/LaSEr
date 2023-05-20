@@ -2,6 +2,21 @@ export default {
     baseState: function() {
         return 0x12345600
     },
+
+    simpleBaseState: function() {
+        // Because you can't only swap two edges, this state is sufficient to describe every possible state
+        return 0x12345500
+    },
+
+    simplifyState: function(state) {
+        for(let i = 2; i < 8; i++) {
+            if(((state >> (i * 4)) & 0x7) == 6) {
+                // 6 XOR 3 = 5
+                state ^= 3 << (i * 4)
+            }
+        }
+        return state
+    },
     
     doMove: function(cube, move) {
         // We do a little
