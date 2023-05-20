@@ -45,6 +45,10 @@ export default {
                     R: '#FF0000',
                 },
             },
+            buttons: {
+                name: 'Show button controls',
+                value: true
+            },
             controls: {
                 name: 'Cube controls',
                 value: {

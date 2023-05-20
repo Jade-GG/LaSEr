@@ -125,6 +125,9 @@ export default {
         if(!globals.getSetting('laser.alwaysshow') && !this.solved) {
             style += '.solutions { display: none !important }'
         }
+        if(!globals.getSetting('cube.buttons')) {
+            style += ' .controls { display: none !important }'
+        }
         return style
     },
     
